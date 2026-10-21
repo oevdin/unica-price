@@ -1,0 +1,623 @@
+<title>Калькулятор дверей Терем</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Onest:wght@400;500;600;700&family=Forum&display=swap">
+<style>
+/* Layout: рабочий инструмент — тонкая шапка; слева шаги заказа (клиент → двери → доп. позиции), справа закреплённый итог и живой лист документа */
+:root{
+  --bg:#f3f4f5; --s1:#ffffff; --s2:#f6f7f8; --fg:#131517; --mute:#6a7076; --line:#e3e5e8; --line2:#d3d6da;
+  --ink:#131517; --ink-fg:#ffffff; --brand:#4f5fd8; --hi:#0b7d5e; --hi-soft:#e5f4ee; --danger:#b4412b; --desk:#e8eaec;
+  --ui:"Onest",system-ui,-apple-system,"Segoe UI",sans-serif; --disp:"Forum",Georgia,serif;
+  --r:12px; --shadow:0 1px 2px rgba(16,18,20,.04),0 4px 16px rgba(16,18,20,.05);
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0d0e10; --s1:#16181b; --s2:#1c1f22; --fg:#eceef0; --mute:#8e949a; --line:#25282c; --line2:#33373c;
+  --ink:#eceef0; --ink-fg:#111214; --brand:#8f9bff; --hi:#43d19f; --hi-soft:#123528; --danger:#f08b70; --desk:#0a0b0c;
+  --shadow:0 1px 2px rgba(0,0,0,.4),0 6px 20px rgba(0,0,0,.35); color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0d0e10; --s1:#16181b; --s2:#1c1f22; --fg:#eceef0; --mute:#8e949a; --line:#25282c; --line2:#33373c;
+  --ink:#eceef0; --ink-fg:#111214; --brand:#8f9bff; --hi:#43d19f; --hi-soft:#123528; --danger:#f08b70; --desk:#0a0b0c;
+  --shadow:0 1px 2px rgba(0,0,0,.4),0 6px 20px rgba(0,0,0,.35); color-scheme:dark}
+*{box-sizing:border-box}
+html,body{background:var(--bg)}
+body{color:var(--fg);font-family:var(--ui);font-size:14px;line-height:1.45;-webkit-font-smoothing:antialiased}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--s1)}
+.pad{padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.in{max-width:1480px;margin:0 auto}
+/* шапка */
+.appbar{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:color-mix(in srgb,var(--s1) 88%,transparent);backdrop-filter:saturate(1.4) blur(10px);border-bottom:1px solid var(--line)}
+.appbar .in{display:flex;align-items:center;gap:14px;min-height:60px;flex-wrap:wrap;padding-block:8px}
+.brand{display:flex;align-items:center;gap:10px;margin-right:auto}
+.logo{width:34px;height:34px;border-radius:9px;background:var(--ink);display:grid;place-items:center;flex:none}
+.logo svg{width:16px;height:20px}
+.brand .t{font-weight:700;font-size:16px;letter-spacing:-.01em;line-height:1.1}
+.brand .s{font-size:12px;color:var(--mute)}
+.pill{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--line);background:var(--s2);border-radius:999px;padding:5px 12px 5px 10px;font-size:12.5px;color:var(--mute);white-space:nowrap}
+.pill b{color:var(--fg);font-weight:600}
+.pill .dot{width:7px;height:7px;border-radius:50%;background:var(--hi);box-shadow:0 0 0 3px var(--hi-soft)}
+.seg{display:flex;background:var(--s2);border:1px solid var(--line);border-radius:10px;padding:3px}
+.seg button{border:0;background:none;font:inherit;font-weight:500;color:var(--mute);padding:6px 14px;border-radius:7px;cursor:pointer}
+.seg button[aria-selected="true"]{background:var(--s1);color:var(--fg);box-shadow:0 1px 2px rgba(0,0,0,.08)}
+.icon-btn{width:38px;height:38px;border-radius:10px;border:1px solid var(--line);background:var(--s1);color:var(--fg);display:grid;place-items:center;cursor:pointer}
+.icon-btn svg{width:18px;height:18px}
+@media (max-width:720px){.pill .long{display:none}}
+/* разметка */
+main.in{padding-block:22px 28px}
+.layout{display:grid;grid-template-columns:minmax(0,470px) minmax(0,1fr);gap:24px;align-items:start}
+@media (max-width:1060px){.layout{grid-template-columns:minmax(0,1fr)}}
+.col{display:flex;flex-direction:column;gap:16px;min-width:0}
+.card{background:var(--s1);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow);min-width:0}
+.step{padding:18px;display:flex;flex-direction:column;gap:14px}
+.step-h{display:flex;align-items:center;gap:10px}
+.step-h .n{font-size:11px;font-weight:600;color:var(--mute);border:1px solid var(--line2);border-radius:6px;padding:2px 6px;font-variant-numeric:tabular-nums}
+.step-h h2{font-size:15px;font-weight:600;margin:0;letter-spacing:-.005em;flex:1}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.g3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+@media (max-width:420px){.g3{grid-template-columns:1fr 1fr}}
+.f{display:flex;flex-direction:column;gap:5px;font-size:12px;color:var(--mute);min-width:0}
+.f>span{font-weight:500}
+input,select{font:inherit;font-size:14px;color:var(--fg);background:var(--s2);border:1px solid var(--line);border-radius:9px;padding:0 11px;height:40px;width:100%;min-width:0;transition:border-color .12s,background .12s}
+input:hover,select:hover{border-color:var(--line2)}
+input:focus,select:focus{outline:none;border-color:var(--hi);background:var(--s1);box-shadow:0 0 0 3px var(--hi-soft)}
+button:focus-visible,summary:focus-visible{outline:2px solid var(--hi);outline-offset:2px}
+.sfx{position:relative}.sfx input{padding-right:30px}.sfx i{position:absolute;right:11px;top:50%;transform:translateY(-50%);font-style:normal;color:var(--mute);pointer-events:none}
+.btn{font:inherit;font-weight:500;height:40px;padding:0 16px;border-radius:9px;border:1px solid var(--line2);background:var(--s1);color:var(--fg);cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:8px;white-space:nowrap}
+.btn:hover{border-color:var(--fg)}
+.btn.pri{background:var(--ink);color:var(--ink-fg);border-color:var(--ink)}
+.btn.pri:hover{opacity:.9}
+.btn.sm{height:32px;padding:0 12px;font-size:13px}
+.btn.ghost{border-color:transparent;background:none;color:var(--mute)}
+.btn.ghost:hover{color:var(--danger);border-color:transparent}
+.btn svg{width:16px;height:16px}
+.hint{font-size:12px;color:var(--mute)}
+.warn{font-size:12px;color:var(--danger)}
+.warn:empty{display:none}
+/* двери */
+#doors{display:flex;flex-direction:column;gap:10px}
+.door{border:1px solid var(--line);border-radius:11px;background:var(--s1);overflow:hidden}
+.door[data-open="true"]{border-color:var(--line2)}
+.dh{display:grid;grid-template-columns:44px minmax(0,1fr) auto 20px;gap:12px;align-items:center;padding:10px 12px;cursor:pointer;width:100%;border:0;background:none;font:inherit;color:inherit;text-align:left}
+.dh:hover{background:var(--s2)}
+.dh .th{width:44px;height:58px;border-radius:6px;background:#fff;border:1px solid var(--line);display:grid;place-items:center;overflow:hidden}
+.dh .th img{height:52px}
+.dh .ti{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dh .me{font-size:12px;color:var(--mute);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dh .pr{font-weight:600;font-variant-numeric:tabular-nums;text-align:right}
+.dh .pr small{display:block;font-weight:400;font-size:11px;color:var(--mute)}
+.dh .ch{color:var(--mute);transition:transform .15s}
+.door[data-open="true"] .dh .ch{transform:rotate(180deg)}
+.db{display:flex;flex-direction:column;gap:14px;padding:4px 14px 14px;border-top:1px solid var(--line)}
+.door[data-open="false"] .db{display:none}
+.sub-h{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.09em;color:var(--mute);margin-top:10px}
+.pics{display:grid;grid-auto-flow:column;grid-auto-columns:76px;gap:8px;overflow-x:auto;padding:2px 2px 6px;scrollbar-width:thin}
+.pics button{border:1px solid var(--line);border-radius:9px;background:#fff;padding:6px 4px 5px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:4px}
+.pics button:hover{border-color:var(--line2)}
+.pics button[aria-pressed="true"]{border-color:var(--hi);box-shadow:0 0 0 2px var(--hi)}
+.pics img{height:76px;display:block}
+.pics .lb{height:11px;max-width:68px;object-fit:contain}
+.found{display:flex;flex-wrap:wrap;gap:6px}
+.found span{font-size:12px;background:var(--s2);border:1px solid var(--line);border-radius:7px;padding:3px 8px}
+details.qty summary{font-size:12px;color:var(--mute);cursor:pointer;list-style:none}
+details.qty summary::before{content:"＋ ";}
+details.qty[open] summary::before{content:"－ ";}
+.dfoot{display:flex;justify-content:space-between;align-items:center;gap:8px;padding-top:4px;border-top:1px dashed var(--line)}
+.add{border:1px dashed var(--line2);background:none;border-radius:11px;height:46px;font:inherit;font-weight:500;color:var(--mute);cursor:pointer}
+.add:hover{color:var(--fg);border-color:var(--fg)}
+/* доп позиции */
+#extras{display:flex;flex-direction:column;gap:8px}
+.extra{display:grid;grid-template-columns:minmax(0,1fr) 58px 64px 92px 34px;gap:6px;align-items:center}
+.extra .mk{grid-column:1/-1;display:flex;align-items:center;gap:6px;font-size:12px;color:var(--mute);margin-top:-2px}
+.extra .mk input{width:16px;height:16px;accent-color:var(--hi)}
+.extra .del{width:34px;height:34px;border:0;background:none;color:var(--mute);cursor:pointer;border-radius:8px}
+.extra .del:hover{color:var(--danger);background:var(--s2)}
+@media (max-width:480px){.extra{grid-template-columns:1fr 1fr 1fr 34px}.extra .nm{grid-column:1/-1}}
+/* итог */
+.side{position:sticky;top:calc(env(safe-area-inset-top,0px) + 76px);display:flex;flex-direction:column;gap:16px;min-width:0}
+@media (max-width:1060px){.side{position:static}}
+.sum{padding:18px;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px 16px;align-items:end}
+.sum .lb{font-size:12px;color:var(--mute);font-weight:500}
+.sum .big{font-size:34px;font-weight:700;letter-spacing:-.02em;font-variant-numeric:tabular-nums;line-height:1.05}
+.sum .meta{font-size:12px;color:var(--mute)}
+.sum .acts{display:flex;gap:8px;grid-row:1/4;grid-column:2;align-self:center;flex-wrap:wrap;justify-content:flex-end}
+@media (max-width:560px){.sum{grid-template-columns:1fr}.sum .acts{grid-row:auto;grid-column:1;justify-content:stretch}.sum .acts .btn{flex:1}}
+.toast{font-size:12.5px;color:var(--hi);grid-column:1/-1;min-height:0}
+.toast:empty{display:none}
+.toast.bad{color:var(--danger)}
+.desk{background:var(--desk);border-radius:var(--r);padding:22px;background-image:radial-gradient(circle,color-mix(in srgb,var(--fg) 9%,transparent) 1px,transparent 1.2px);background-size:18px 18px}
+.desk .cap0{display:flex;justify-content:space-between;font-size:12px;color:var(--mute);margin-bottom:10px}
+.paperbox{overflow:hidden;box-shadow:0 2px 6px rgba(0,0,0,.08),0 20px 40px -12px rgba(0,0,0,.18);border-radius:2px;margin:0 auto}
+/* инструкция */
+.helpbtn{gap:6px;border-color:var(--hi);color:var(--hi);background:var(--hi-soft)}
+.helpbtn:hover{border-color:var(--hi);opacity:.9}
+.helpbtn svg{width:12px;height:12px}
+.vmodal{position:fixed;inset:0;z-index:50;background:rgba(10,11,12,.72);backdrop-filter:blur(4px);display:grid;place-items:center;
+  padding:max(16px,env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) max(16px,env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px))}
+.vmodal[hidden]{display:none}
+.vbox{background:var(--s1);border:1px solid var(--line);border-radius:16px;width:min(1100px,100%);overflow:hidden;box-shadow:0 30px 80px rgba(0,0,0,.4)}
+.vhead{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:14px 16px}
+.vt{font-weight:700;font-size:16px}.vs{font-size:12px;color:var(--mute)}
+.vbox video{display:block;width:100%;max-height:75vh;background:#000;aspect-ratio:16/10}
+.verr{padding:16px;color:var(--danger);font-size:13px}
+@media (max-width:560px){.helpbtn span{display:none}}
+/* мобильная панель */
+.mbar{display:none}
+@media (max-width:1060px){
+ .mbar{display:flex;position:fixed;left:0;right:0;bottom:0;z-index:6;gap:10px;align-items:center;justify-content:space-between;background:var(--s1);border-top:1px solid var(--line);
+  padding:10px max(16px,env(safe-area-inset-right,0px)) calc(10px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px));box-shadow:0 -6px 20px rgba(0,0,0,.08)}
+ .mbar .v{font-weight:700;font-size:19px;font-variant-numeric:tabular-nums}.mbar .l{font-size:11px;color:var(--mute)}
+ body{padding-bottom:76px}}
+/* история */
+.hist{display:flex;flex-direction:column;gap:10px;max-width:860px}
+.hrow{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:14px;align-items:center;padding:14px 16px}
+.hrow .t{font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.hrow .m{font-size:12px;color:var(--mute)}
+.hrow .s{font-variant-numeric:tabular-nums;font-weight:600}
+.empty{color:var(--mute);padding:36px;border:1px dashed var(--line2);border-radius:var(--r);text-align:center;max-width:860px}
+/* подвал */
+footer.foot .in{display:flex;align-items:center;justify-content:center;gap:10px;padding-block:22px 30px;border-top:1px solid var(--line);color:var(--mute);font-size:12.5px}
+footer.foot .u{width:22px;height:22px;border-radius:6px;background:var(--ink);color:var(--ink-fg);display:grid;place-items:center;font-weight:700;font-size:12px}
+footer.foot .brandname{color:var(--brand);font-weight:700;letter-spacing:.01em}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+/* ===== Лист документа (всегда «бумага», светлый) ===== */
+#paper{--ink:#1d1d1b;--pm:#7a7671;--pl:#d9d4cc;--pa:#8c7a5b;--pb:#f6f3ee;
+  width:794px;background:#fff;color:var(--ink);font-family:var(--ui);font-size:11px;line-height:1.35;padding:40px 44px 36px;transform-origin:0 0}
+#paper .ph{display:flex;justify-content:space-between;align-items:flex-end;border-bottom:2px solid var(--ink);padding-bottom:9px}
+#paper .ph .t{font-family:var(--disp);font-size:26px;letter-spacing:.02em}
+#paper .ph .s{color:var(--pm);font-size:10px;margin-top:2px}
+#paper .ph .r{text-align:right;color:var(--pm);font-size:10.5px;line-height:1.6}
+#paper .ph .r b{color:var(--ink);font-weight:600}
+#paper .note1{margin:12px 0;background:var(--pb);border-left:3px solid var(--pa);padding:7px 11px;font-size:10.5px}
+#paper .cards{display:grid;grid-template-columns:repeat(var(--n,3),minmax(0,1fr));gap:8px}
+#paper .card{background:#fff;box-shadow:none;border-radius:0;color:var(--ink);border:1px solid var(--pl);padding:8px 6px;display:flex;flex-direction:column;align-items:center;gap:5px;min-width:0}
+#paper .card svg{height:var(--sh,230px);width:auto;max-width:100%}
+#paper .card .nm{font-weight:600;font-size:11.5px;text-align:center}
+#paper .card .sp{color:var(--pm);font-size:9.5px;text-align:center;line-height:1.35}
+#paper .card .q{font-weight:600;font-size:10px}
+#paper .cap{color:var(--pm);font-size:9px;margin-top:3px}
+#paper .cl{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:10px;font-size:10.5px}
+#paper .cl div{display:flex;gap:6px;border-bottom:1px solid var(--pl);padding-bottom:2px}
+#paper .cl span{color:var(--pm)}
+#paper table{width:100%;border-collapse:collapse;margin-top:12px;font-size:10.5px}
+#paper td b{font-weight:600}
+#paper .cards.one .card{flex-direction:row;justify-content:center;gap:28px;padding:10px 20px}
+#paper .cards.one .card .info{display:flex;flex-direction:column;gap:6px;align-items:flex-start}
+#paper .cards.one .card .nm{font-size:15px;text-align:left}
+#paper .cards.one .card .sp{font-size:11px;text-align:left;line-height:1.6}
+#paper .card .info{display:flex;flex-direction:column;gap:4px;align-items:center}
+#paper th{font-size:8.5px;text-transform:uppercase;letter-spacing:.1em;color:var(--pm);font-weight:600;text-align:left;padding:5px;border-bottom:1.5px solid var(--ink)}
+#paper td{padding:5px;border-bottom:1px solid var(--pl);vertical-align:top}
+#paper td.n,#paper th.n{text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
+#paper td.c,#paper th.c{text-align:center}
+#paper td .sb{color:var(--pm);font-size:9px;margin-top:1px}
+#paper tr.g td{background:var(--pb);font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.14em;border-bottom:0}
+#paper tr.g td .gs{float:right;color:var(--pm);letter-spacing:0;font-weight:600}
+#paper .num{display:inline-block;min-width:16px;height:16px;border-radius:8px;color:#fff;font-size:8.5px;font-weight:600;text-align:center;line-height:16px}
+#paper .free{color:#4f7a4a;font-weight:600}
+#paper .tot{display:flex;justify-content:flex-end;margin-top:8px}
+#paper .tot div{width:290px;display:flex;justify-content:space-between;border-top:2px solid var(--ink);padding-top:7px;font-size:15px;font-weight:600}
+#paper .tot b{color:var(--pa);font-variant-numeric:tabular-nums}
+#paper ul{margin:10px 0 0;padding-left:15px;color:var(--pm);font-size:9.5px}
+#paper .sg{display:grid;grid-template-columns:1fr 1fr;gap:28px;margin-top:22px}
+#paper .sg .l{font-size:8.5px;text-transform:uppercase;letter-spacing:.14em;color:var(--pa);font-weight:600}
+#paper .sg .ln{border-bottom:1px solid var(--ink);height:24px}
+#paper .sg .c2{display:flex;justify-content:space-between;color:var(--pm);font-size:8.5px;margin-top:3px}
+</style>
+
+<header class="appbar pad"><div class="in">
+  <div class="brand"><div class="logo" aria-hidden="true"><svg viewBox="0 0 16 20"><rect x="1" y="1" width="14" height="18" rx="1" fill="none" stroke="var(--ink-fg)" stroke-width="1.6"/><rect x="4" y="4" width="8" height="5.5" fill="none" stroke="var(--ink-fg)" stroke-width="1.2"/><circle cx="11.6" cy="12" r="1" fill="var(--ink-fg)"/></svg></div>
+    <div><div class="t">Терем</div><div class="s">Калькулятор дверей</div></div></div>
+  <div class="pill" title="Цены и методика взяты из этого прайса"><span class="dot"></span><span>Прайс от <b id="pdate"></b></span><span class="long">· <span id="pver"></span></span></div>
+  <button class="btn sm helpbtn" id="helpBtn"><svg viewBox="0 0 16 16" fill="currentColor"><path d="M5 3.5v9l7-4.5z"/></svg>Инструкция</button>
+  <button class="icon-btn" id="themeBtn" aria-label="Сменить тему"></button>
+  <div class="seg" role="tablist"><button role="tab" id="tabCalc" aria-selected="true">Расчёт</button><button role="tab" id="tabHist" aria-selected="false">История</button></div>
+</div></header>
+
+<main class="in pad">
+<div id="viewCalc" class="layout">
+  <div class="col" id="form">
+    <section class="card step">
+      <div class="step-h"><span class="n">1</span><h2>Клиент и условия</h2><button class="btn sm" id="newCalc">Новый расчёт</button></div>
+      <label class="f"><span>Заказчик</span><input id="m_client" placeholder="Имя или компания"></label>
+      <div class="g2"><label class="f"><span>Телефон</span><input id="m_phone" inputmode="tel"></label><label class="f"><span>Объект</span><input id="m_obj" placeholder="Адрес / ЖК"></label></div>
+      <div class="g2"><label class="f"><span>№ документа</span><input id="m_num"></label><label class="f"><span>Дата</span><input id="m_date" type="date"></label></div>
+      <div class="g2"><label class="f"><span>Моя наценка</span><div class="sfx"><input id="m_markup" type="number" step="1"><i>%</i></div></label><label class="f"><span>Скидка клиенту</span><div class="sfx"><input id="m_disc" type="number" step="1"><i>%</i></div></label></div>
+    </section>
+    <section class="card step">
+      <div class="step-h"><span class="n">2</span><h2>Двери</h2></div>
+      <div id="doors"></div>
+      <button class="add" id="addDoor">+ Добавить дверь</button>
+    </section>
+    <section class="card step">
+      <div class="step-h"><span class="n">3</span><h2>Фурнитура, услуги, прочее</h2><button class="btn sm" id="addExtra">+ Строка</button></div>
+      <div class="hint">Свои позиции по своим ценам. Отметьте «С наценкой», если к строке нужна ваша наценка.</div>
+      <div id="extras"></div>
+    </section>
+  </div>
+  <aside class="side">
+    <section class="card sum">
+      <div class="lb">Итого для клиента</div>
+      <div class="acts"><button class="btn" id="saveHist">В историю</button><button class="btn pri" id="savePdf"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M8 2v8m0 0 3-3m-3 3L5 7M3 13h10"/></svg>Скачать PDF</button></div>
+      <div class="big" id="sumTotal"></div>
+      <div class="meta" id="sumRrc"></div>
+      <div class="toast" id="toast" role="status"></div>
+    </section>
+    <div class="desk"><div class="cap0"><span>Документ для клиента</span><span>A4 · обновляется сразу</span></div>
+      <div class="paperbox" id="paperbox"><div id="paper"></div></div></div>
+  </aside>
+</div>
+<div id="viewHist" hidden><div class="hist" id="histList"></div></div>
+</main>
+<div class="vmodal" id="vmodal" hidden role="dialog" aria-modal="true" aria-labelledby="vtitle">
+  <div class="vbox">
+    <div class="vhead"><div><div class="vt" id="vtitle">Как работать с калькулятором</div><div class="vs">Видео-инструкция · 2 минуты 35 секунд</div></div><button class="icon-btn" id="vclose" aria-label="Закрыть">✕</button></div>
+    <video id="vplayer" controls preload="metadata" playsinline><source src="instruction.mp4" type="video/mp4"><source src="instruction.webm" type="video/webm"></video>
+    <div class="verr" id="verr" hidden>Видео не загрузилось. Файл <b>instruction.mp4</b> должен лежать рядом с программой.</div>
+  </div>
+</div>
+<div class="mbar"><div><div class="l">Итого</div><div class="v" id="mTotal"></div></div><button class="btn pri" id="mPdf">Скачать PDF</button></div>
+<footer class="foot pad"><div class="in"><span>Разработано</span><b class="brandname">UNICADigital</b></div></footer>
+<script>
+const DATA = /*DATA*/null;
+const IMGS = /*IMGS*/null;
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script>
+(function(){
+const $=s=>document.querySelector(s);
+const fmt=n=>(Math.round(n*100)/100).toLocaleString('ru-RU',{minimumFractionDigits:2,maximumFractionDigits:2}).replace(/ /g,' ');
+const r2=n=>Math.round((n+1e-9)*100)/100;
+const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+$('#pdate').textContent=DATA.priceDate;$('#pver').textContent=(DATA.priceVer||'').replace(/ от [0-9.]+/,'');
+// тема: светлая / тёмная / как в системе
+const ICO={system:'<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="10" cy="10" r="7"/><path d="M10 3a7 7 0 0 0 0 14z" fill="currentColor"/></svg>',light:'<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="10" cy="10" r="3.5"/><path d="M10 2v2M10 16v2M2 10h2M16 10h2M4.3 4.3l1.4 1.4M14.3 14.3l1.4 1.4M4.3 15.7l1.4-1.4M14.3 5.7l1.4-1.4"/></svg>',dark:'<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M16 12.5A6.5 6.5 0 0 1 7.5 4a6.5 6.5 0 1 0 8.5 8.5z"/></svg>'};
+const THEMES=[['system','Тема: как в системе'],['light','Светлая тема'],['dark','Тёмная тема']];
+let th='system';try{th=localStorage.getItem('terem_theme')||'system'}catch(e){}
+function applyTheme(){if(th==='system')document.documentElement.removeAttribute('data-theme');else document.documentElement.setAttribute('data-theme',th);const b=$('#themeBtn');b.innerHTML=ICO[th];b.title=THEMES.find(t=>t[0]===th)[1];b.setAttribute('aria-label',b.title)}
+$('#themeBtn').onclick=()=>{const i=THEMES.findIndex(t=>t[0]===th);th=THEMES[(i+1)%3][0];try{localStorage.setItem('terem_theme',th)}catch(e){}applyTheme()};
+applyTheme();
+const COLL=Object.fromEntries(DATA.collections.map(c=>[c.name,c]));
+const SHEET=Object.fromEntries(DATA.collections.map(c=>[c.name,c.sheet]));
+const COLOR=[['Базовый цвет',0],['Базовый цвет с доп. наценкой (+5%)',.05],['RAL / NCS (+20%)',.20],['Подбор по образцу (+30%)',.30]];
+const KEYNAME={'ПВХ':'ПВХ','Эмаль':'эмаль','FL1':'шпон Файн Лайн 1','FL2':'шпон Файн Лайн 2','Ясень':'шпон ясень','Дуб':'шпон дуб','Дуб масло':'шпон дуб (масло)','Орех':'шпон орех'};
+const MOLD=DATA.mold;
+const boxes=MOLD.map((m,i)=>[i,m]).filter(([i,m])=>m.t==='box');
+const nals=MOLD.map((m,i)=>[i,m]).filter(([i,m])=>m.t==='nal');
+const dobs=MOLD.map((m,i)=>[i,m]).filter(([i,m])=>m.t==='dob');
+const idxOf=n=>MOLD.findIndex(m=>m.n===n);
+
+const SYS={
+ L:{label:'L — стандартный (как в комплектах прайса)',box:'Короб L прямой 34×75',depth:75,nalDef:'Наличник плоский L 10×75',
+    nals:['Наличник плоский L 10×75','Наличник плоский L 10×90','Наличник плоский L 10×50','Наличник плоский Z 10×75','Наличник плоский L 16×75','Наличник плоский L 16×90','Наличник плоский L 16×110','Наличник фигурный WL 12×85','Наличник фигурный Этна 16×85','Наличник фигурный Комо 16×90','Наличник фигурный ML 16×85','Наличник фигурный Арно 16×110','Наличник фигурный Степ 23×110','Наличник фигурный Лацио 16×110','Наличник фигурный Модерн 23×110'],
+    dobs:[100,200,300,400,500,900].map(w=>'Добор (расширитель) L '+w+' мм')},
+ Q:{label:'Q — компланарный (Твист, Дизайн, Техно)',box:'Короб Q 34×72',depth:72,nalDef:'Наличник Q плоский 10×90',
+    nals:['Наличник Q плоский 10×90','Наличник Q плоский 10×50','Наличник Q плоский 10×110','Наличник Q плоский 10×150','Наличник фигурный Арно 16×110','Наличник фигурный Степ 23×110'],
+    dobs:[100,200,300,400,500,900].map(w=>'Добор (расширитель) L '+w+' мм')},
+ RQ:{label:'RQ — компланарный, обратное открывание',box:'Короб RQ 34×69 (обратное открывание)',depth:69,nalDef:'Наличник RQ 10×90',
+    nals:['Наличник RQ 10×90','Наличник RQ 10×110','Наличник RQ 10×150','Наличник фигурный Арно 16×110','Наличник фигурный Степ 23×110'],
+    dobs:[100,200,300,400,500,900].map(w=>'Добор (расширитель) L '+w+' мм')},
+ M:{label:'M — клеевой (Е-Классик, Прованс)',box:'Короб M 34×72',depth:72,nalDef:'Наличник M 15×85',nals:['Наличник M 15×85'],dobs:['Добор M 100 мм','Добор M 200 мм']},
+ custom:{label:'Вручную — выбрать всё самому'}
+};
+function resolveMold(d){
+  if(!d.sys||d.sys==='custom')return {box:d.box,nal:d.nal,dob:d.dob,dobNote:d.dobW||'',warn:[]};
+  const sy=SYS[d.sys],warn=[];
+  const box=idxOf(sy.box);
+  let nal=(d.nalSel!=null&&d.nalSel>=0&&sy.nals.includes((MOLD[d.nalSel]||{}).n))?d.nalSel:idxOf(sy.nalDef);
+  if(d.nalSel===-1)nal=-1;
+  let dob=-1,dobNote='';
+  const wall=+d.wall||0;
+  if(wall>0){const need=wall-sy.depth;
+    if(need>5){const c=sy.dobs.map(n=>[idxOf(n),+n.match(/(\d+) мм/)[1]]).filter(x=>x[0]>=0);
+      let pick=c.find(x=>x[1]>=need); if(!pick){pick=c[c.length-1];warn.push('стена толще, чем самый широкий добор — уточните')}
+      dob=pick[0]; dobNote=String(Math.round(need));}
+  }
+  return {box,nal,dob,dobNote,warn};
+}
+function today(){const d=new Date();return d.toISOString().slice(0,10)}
+function newDoor(){return {coll:'Е-Классик',model:0,coat:0,colorCat:0,colorTxt:'белый',glass:-1,W:800,H:2000,qty:1,pic:0,
+  sys:'L',nalSel:idxOf('Наличник плоский L 10×75'),wall:'',box:idxOf('Короб L прямой 34×75'),boxQ:2.5,nal:idxOf('Наличник плоский L 10×75'),nalQ:5,dob:-1,dobQ:2.5,dobW:''}}
+function sample(){
+  const d=newDoor(); d.coll='Е-Классик';d.model=0;d.coat=0;d.W=700;d.H=2500;d.pic=2;d.nalSel=idxOf('Наличник фигурный ML 16×85');
+  return {meta:{num:'',date:today(),client:'',phone:'',obj:'',markup:10,disc:0},doors:[d],
+    extras:[{n:'Петля скрытая',u:'шт.',q:2,p:2500,mk:false}],sample:true};
+}
+let S;
+try{S=JSON.parse(localStorage.getItem('terem_draft'))}catch(e){}
+if(!S||!S.doors)S=sample();
+S.doors.forEach(d=>{if(!d.sys)d.sys='custom'});
+
+// ---------- расчёт ----------
+function wgroup(W){
+  if(W>=400&&W<=900&&W%100===0)return '400–900';
+  if(W>=1000&&W<=1100)return '1000–1100';
+  if(W>=450&&W<=950)return '450–950';
+  return null;
+}
+function hrow(g,H){const rows=DATA.heights[g];if(!rows)return null;for(const r of rows){if(r.h&&H<=r.h)return r}return null}
+function moldCalc(item,coatKey,H,g){
+  const r=hrow(g||'400–900',H); const warn=[];
+  let key=coatKey; let p=item.pr[key];
+  if(p==null){const ks=Object.keys(item.pr);key=item.pr['Эмаль']!=null?'Эмаль':ks[0];p=item.pr[key];warn.push('нет в покрытии «'+(KEYNAME[coatKey]||coatKey)+'», взято «'+(KEYNAME[key]||key)+'»')}
+  let len=Math.max(item.base, r&&r.len?r.len:item.base), pct=0;
+  if(item.t==='dob'||item.t==='box'||item.t==='nal'||item.t==='other'){
+    if(r&&r.len){
+      if(item.base<=2150)pct=r.pb||0;
+      else if(item.base===2400)pct=r.len>2400?(r.p24||0):0;
+      else if(item.base===2700)pct=r.len>2700?(r.p27||0):0;
+    }
+  }
+  if(r&&r.len===3500&&!/Q|RQ/.test(item.n)){warn.push('длина 3500 мм только для наличников Q/RQ')}
+  return {unit:p*(1+pct),len,pct,key,warn};
+}
+function doorCalc(d){
+  const c=COLL[d.coll];const m=c.models[d.model]||c.models[0];const co=m.coats[d.coat]||m.coats[0];
+  const warn=[];const g=wgroup(+d.W);if(!g)warn.push('Ширина вне стандартного ряда прайса (400–1100 мм)');
+  const r=g?hrow(g,+d.H):null;if(!r)warn.push('Высота больше 3450 мм — нет в прайсе');
+  const hp=r&&r.p!=null?r.p:0;const cp=COLOR[d.colorCat][1];
+  const gl=d.glass>=0?c.glass[d.glass]:null;
+  const unit=co.p*(1+hp)*(1+cp)+(gl?gl.p:0);
+  const stab=+d.H>2350;
+  return {c,m,co,g,hp,cp,gl,unit,stab,warn,r};
+}
+function calcAll(){
+  const mk=(+S.meta.markup||0)/100, ds=(+S.meta.disc||0)/100;
+  const k=x=>r2(x*(1+mk)*(1-ds));
+  const doors=[],mold={},extra=[];let rrc=0,tot=0,stabQ=0;
+  S.doors.forEach((d,i)=>{
+    const R=doorCalc(d); const q=+d.qty||0;
+    const name=`Дверь ${R.m.n.replace(/\s*\([^)]*\)\s*$/,'')}, ${R.co.c.toLowerCase()}${d.colorTxt?', '+d.colorTxt:''}, ${R.gl?'со стеклом':'глухая'}, ${d.W} × ${d.H} мм`;
+    const sub=[R.hp?`Включена наценка за высоту до ${R.r.h} мм`:'',R.cp?COLOR[d.colorCat][0].replace(/\s*\(.*\)/,''):'',R.gl?R.gl.n:''].filter(Boolean).join('; ');
+    const up=k(R.unit); doors.push({n:name,sub,u:'шт.',q,p:up,s:r2(up*q),i}); rrc+=r2(R.unit)*q;
+    if(R.stab)stabQ+=q;
+    const RM=resolveMold(d);
+    [['box',RM.box,d.boxQ],['nal',RM.nal,d.nalQ],['dob',RM.dob,d.dobQ]].forEach(([t,idx,qq])=>{
+      if(idx==null||idx<0)return; const it=MOLD[idx]; const mc=moldCalc(it,R.co.k,+d.H,R.g);
+      const nm=`${it.n}${t==='dob'&&RM.dobNote?' (под '+RM.dobNote+' мм)':''}, ${KEYNAME[mc.key]||mc.key}, ${mc.len} мм`;
+      const key=nm; const qty=(+qq||0)*q;
+      if(!mold[key])mold[key]={n:nm,sub:mc.pct?`Включена наценка за длину ${mc.len} мм`:'',u:'шт.',q:0,rrc:mc.unit,p:k(mc.unit)};
+      mold[key].q+=qty;
+    });
+  });
+  const moldRows=Object.values(mold).map(m=>{m.q=Math.round(m.q*100)/100;m.s=r2(m.p*m.q);rrc+=r2(m.rrc)*m.q;return m});
+  if(stabQ){const p=4000;extra.push({n:'Комплект стабилизаторов для полотна',sub:'Обязателен для полотен высотой свыше 2350 мм',u:'компл.',q:stabQ,p:k(p),s:r2(k(p)*stabQ)});rrc+=p*stabQ}
+  S.extras.forEach(e=>{const q=+e.q||0,p0=+e.p||0;const p=e.mk?k(p0):r2(p0*(1-ds));extra.push({n:e.n||'—',sub:e.sub||'',u:e.u||'шт.',q,p,s:r2(p*q)});rrc+=p0*q});
+  const groups=[['Двери','#8c7a5b',doors],['Погонаж','#4f7a8f',moldRows],['Фурнитура и прочее','#6f8a4f',extra]].filter(g=>g[2].length);
+  groups.forEach(g=>g[2].forEach(r=>tot+=r.s));
+  return {groups,tot:r2(tot),rrc:r2(rrc)};
+}
+
+// ---------- эскиз ----------
+function pickImg(d){const arr=IMGS[SHEET[d.coll]]||[];return arr[d.pic]||arr[0]}
+function sketch(d,nalW){
+  const W=+d.W||800,H=+d.H||2000,N=nalW||75,o=N+10,steps=[o-15,o-35,o-55,22].filter(s=>s>12);
+  const im=pickImg(d); const fs=Math.max(70,W*0.11);
+  let s=`<svg viewBox="${-o-50} -50 ${W+2*o+250} ${H+(fs*2.2)+80}" xmlns="http://www.w3.org/2000/svg">
+  <defs><marker id="ar" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#1d1d1b"/></marker></defs>
+  <line x1="${-o-40}" y1="${H}" x2="${W+o+40}" y2="${H}" stroke="#7a7671" stroke-width="5"/>
+  <path d="M${-o},${H} V${-o} H${W+o} V${H}" fill="#fff" stroke="#1d1d1b" stroke-width="6"/>`;
+  steps.forEach(k=>s+=`<path d="M${-k},${H} V${-k} H${W+k} V${H}" fill="none" stroke="#6b6762" stroke-width="2.5"/>`);
+  s+=`<path d="M-10,${H} V-10 H${W+10} V${H}" fill="none" stroke="#1d1d1b" stroke-width="3"/>`;
+  if(im)s+=`<image href="data:image/png;base64,${im.d}" x="0" y="0" width="${W}" height="${H}" preserveAspectRatio="none"/>`;
+  s+=`<rect x="0" y="0" width="${W}" height="${H}" fill="none" stroke="#1d1d1b" stroke-width="5"/>
+  <line x1="0" y1="${H+20}" x2="0" y2="${H+fs*1.6}" stroke="#7a7671" stroke-width="3"/><line x1="${W}" y1="${H+20}" x2="${W}" y2="${H+fs*1.6}" stroke="#7a7671" stroke-width="3"/>
+  <line x1="0" y1="${H+fs*1.25}" x2="${W}" y2="${H+fs*1.25}" stroke="#1d1d1b" stroke-width="4" marker-start="url(#ar)" marker-end="url(#ar)"/>
+  <text x="${W/2}" y="${H+fs*1.05}" text-anchor="middle" font-size="${fs}" font-weight="600" fill="#1d1d1b" font-family="Golos Text, sans-serif">${W}</text>
+  <line x1="${W+o+20}" y1="0" x2="${W+o+190}" y2="0" stroke="#7a7671" stroke-width="3"/>
+  <line x1="${W+o+150}" y1="0" x2="${W+o+150}" y2="${H}" stroke="#1d1d1b" stroke-width="4" marker-start="url(#ar)" marker-end="url(#ar)"/>
+  <text transform="translate(${W+o+125},${H/2}) rotate(-90)" text-anchor="middle" font-size="${fs}" font-weight="600" fill="#1d1d1b" font-family="Golos Text, sans-serif">${H}</text></svg>`;
+  return s;
+}
+
+// ---------- документ ----------
+function renderPaper(){
+  const C=calcAll(); const m=S.meta;
+  const dt=m.date?m.date.split('-').reverse().join('.'):'«___» ________ 20__ г.';
+  const n=Math.min(Math.max(S.doors.length,1),4);
+  let cards=S.doors.map(d=>{const R=doorCalc(d);const it=MOLD[resolveMold(d).nal];const nw=it&&/×(\d+)/.test(it.n)?+it.n.match(/×(\d+)/)[1]:75;
+    return `<div class="card">${sketch(d,nw)}<div class="info"><div class="nm">${esc(R.m.n.replace(/\s*\([^)]*\)\s*$/,''))}</div>
+    <div class="sp">${esc(R.co.c)}${d.colorTxt?', '+esc(d.colorTxt):''}<br>${R.gl?'Со стеклом':'Глухое (ДГ)'} · ${d.W} × ${d.H} мм${it?'<br>'+esc(it.n):''}</div><div class="q">Кол-во: ${d.qty} шт.</div></div></div>`}).join('');
+  let i=0;
+  const rows=C.groups.map(([g,col,rs])=>{const gs=rs.reduce((a,r)=>a+r.s,0);
+    return `<tr class="g"><td colspan="6" style="color:${col}">${g}<span class="gs">${gs?fmt(gs):'бесплатно'}</span></td></tr>`+
+    rs.map(r=>{i++;return `<tr><td><span class="num" style="background:${col}">${i}</span></td><td><b>${esc(r.n)}</b>${r.sub?`<div class="sb">${esc(r.sub)}</div>`:''}</td><td class="c">${esc(r.u)}</td><td class="n">${String(r.q).replace('.',',')}</td><td class="n">${r.p?fmt(r.p):'<span class="free">0,00</span>'}</td><td class="n">${r.s?fmt(r.s):'<span class="free">бесплатно</span>'}</td></tr>`}).join('')}).join('');
+  const sh=S.doors.length>3?190:230;
+  $('#paper').innerHTML=`<div class="ph"><div><div class="t">Эскиз и предварительный расчёт</div><div class="s">Межкомнатные двери в комплекте с погонажными изделиями</div></div>
+   <div class="r">№ <b>${esc(m.num)||'______'}</b><br>от <b>${esc(dt)}</b></div></div>
+   <div class="note1">Документ носит ознакомительный характер и <b>не является счётом на оплату</b>. После согласования эскиза и комплектации будет выставлен счёт.</div>
+   <div class="cards${S.doors.length===1?' one':''}" style="--n:${S.doors.length===1?1:n};--sh:${sh}px">${cards}</div>
+   <div class="cap">Вид спереди · размеры полотна в мм · эскиз не в масштабе</div>
+   <div class="cl"><div><span>Заказчик</span>${esc(m.client)}</div><div><span>Телефон</span>${esc(m.phone)}</div><div><span>Объект</span>${esc(m.obj)}</div></div>
+   <table><thead><tr><th style="width:22px">№</th><th>Наименование</th><th class="c">Ед.</th><th class="n">Кол-во</th><th class="n">Цена</th><th class="n">Сумма</th></tr></thead><tbody>${rows}</tbody></table>
+   <div class="tot"><div><span>Итого</span><b>${fmt(C.tot)}</b></div></div>
+   <ul><li>Расчёт предварительный, окончательная стоимость фиксируется в счёте после согласования.</li>
+   <li>Размер проёма и направление открывания уточняются на замере.</li>
+   <li>Позиции, не указанные в расчёте (фурнитура, доставка, монтаж), оплачиваются отдельно.</li>
+   <li>Цены по прайс-листу от ${DATA.priceDate}.</li></ul>
+   <div class="sg"><div><div class="l">Подготовил</div><div class="ln"></div><div class="c2"><span>подпись</span><span>расшифровка</span></div></div>
+   <div><div class="l">С эскизом и расчётом ознакомлен</div><div class="ln"></div><div class="c2"><span>подпись заказчика</span><span>дата</span></div></div></div>`;
+  $('#sumTotal').textContent=fmt(C.tot);$('#mTotal').textContent=fmt(C.tot);
+  const nd=S.doors.reduce((a,d)=>a+(+d.qty||0),0);
+  $('#sumRrc').textContent=`${nd} ${nd%10===1&&nd%100!==11?'дверь':(nd%10>=2&&nd%10<=4&&(nd%100<10||nd%100>=20)?'двери':'дверей')} · по прайсу без наценки ${fmt(C.rrc)}`;
+  fitPaper();
+  return C;
+}
+function fitPaper(){const box=$('#paperbox'),p=$('#paper');const w=box.clientWidth||794;const sc=Math.min(1,w/794);p.style.transform=`scale(${sc})`;box.style.height=(p.offsetHeight*sc)+'px'}
+addEventListener('resize',fitPaper);
+
+// ---------- форма ----------
+function opt(v,t,sel){return `<option value="${esc(v)}"${sel?' selected':''}>${esc(t)}</option>`}
+function renderDoors(){
+  const host=$('#doors');host.innerHTML='';
+  S.doors.forEach((d,i)=>{
+    const c=COLL[d.coll]; if(d.model>=c.models.length)d.model=0; const m=c.models[d.model]; if(d.coat>=m.coats.length)d.coat=0;
+    const R=doorCalc(d);
+    const first=m.n.split(/[\s(,]/)[0].toLowerCase().replace(/\d+$/,'');
+    const gl=c.glass.map((g,j)=>[j,g]); const glF=gl.filter(([j,g])=>g.m.toLowerCase().startsWith(first)); const glList=glF.length?glF:gl;
+    const imgs=IMGS[SHEET[d.coll]]||[];
+    const el=document.createElement('div');el.className='door';el.dataset.open=d._open===false?'false':'true';
+    const im=imgs[d.pic]||imgs[0];
+    el.innerHTML=`<button class="dh" data-tog aria-expanded="${d._open!==false}">
+      <span class="th">${im?`<img alt="" src="data:image/png;base64,${im.d}">`:''}</span>
+      <span style="min-width:0"><span class="ti" style="display:block">${esc(m.n.replace(/\s*\([^)]*\)\s*$/,''))}</span><span class="me" style="display:block" id="dmeta${i}"></span></span>
+      <span class="pr" id="dp${i}"></span>
+      <svg class="ch" viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="m4 6 4 4 4-4"/></svg></button>
+    <div class="db">
+    <div class="sub-h">Модель</div>
+    <div class="g2"><label class="f"><span>Коллекция</span><select id="d${i}_coll">${DATA.collections.map(cc=>opt(cc.name,cc.name,cc.name===d.coll)).join('')}</select></label>
+    <label class="f"><span>Позиция в прайсе</span><select id="d${i}_model">${c.models.map((mm,j)=>opt(j,mm.n,j==d.model)).join('')}</select></label></div>
+    <div class="f"><span>Вид двери на эскизе</span><div class="pics">${imgs.map((im,j)=>`<button data-pic="${j}" aria-pressed="${j==d.pic}"><img alt="" src="data:image/png;base64,${im.d}">${im.l?`<img class="lb" alt="" src="data:image/png;base64,${im.l}">`:''}</button>`).join('')}</div></div>
+    <div class="sub-h">Отделка</div>
+    <div class="g2"><label class="f"><span>Покрытие</span><select id="d${i}_coat">${m.coats.map((cc,j)=>opt(j,cc.c+' — '+fmt(cc.p),j==d.coat)).join('')}</select></label>
+    <label class="f"><span>Цвет</span><input id="d${i}_colorTxt" value="${esc(d.colorTxt)}" placeholder="напр. белый"></label></div>
+    <div class="g2"><label class="f"><span>Категория цвета</span><select id="d${i}_colorCat">${COLOR.map((cc,j)=>opt(j,cc[0],j==d.colorCat)).join('')}</select></label>
+    <label class="f"><span>Стекло</span><select id="d${i}_glass">${opt(-1,'Без стекла (глухое)',d.glass<0)}${glList.map(([j,g])=>opt(j,g.m+' · '+g.n+' — '+fmt(g.p),j==d.glass)).join('')}</select></label></div>
+    <div class="sub-h">Размер</div>
+    <div class="g3"><label class="f"><span>Ширина, мм</span><input id="d${i}_W" type="number" step="50" value="${d.W}"></label>
+    <label class="f"><span>Высота, мм</span><input id="d${i}_H" type="number" step="50" value="${d.H}"></label>
+    <label class="f"><span>Кол-во, шт.</span><input id="d${i}_qty" type="number" min="1" value="${d.qty}"></label></div>
+    <div class="sub-h">Погонаж</div>
+    <label class="f"><span>Система</span><select id="d${i}_sys">${Object.entries(SYS).map(([k,v])=>opt(k,v.label,k===d.sys)).join('')}</select></label>
+    ${d.sys!=='custom'?`<div class="g2"><label class="f"><span>Наличник</span><select id="d${i}_nalSel">${opt(-1,'Без наличника',d.nalSel===-1)}${SYS[d.sys].nals.map(n=>[idxOf(n),n]).filter(x=>x[0]>=0).map(([j,n])=>opt(j,n.replace('Наличник ',''),j==resolveMold(d).nal)).join('')}</select></label>
+    <label class="f"><span>Толщина стены, мм</span><input id="d${i}_wall" type="number" step="5" placeholder="без добора" value="${esc(d.wall)}"></label></div>
+    <div class="found" id="dm${i}"></div>`:`<div class="g3"><label class="f"><span>Короб</span><select id="d${i}_box">${opt(-1,'— нет —',d.box<0)}${boxes.map(([j,b])=>opt(j,b.n,j==d.box)).join('')}</select></label>
+    <label class="f"><span>Наличник</span><select id="d${i}_nal">${opt(-1,'— нет —',d.nal<0)}${nals.map(([j,b])=>opt(j,b.n,j==d.nal)).join('')}</select></label>
+    <label class="f"><span>Добор</span><select id="d${i}_dob">${opt(-1,'— нет —',d.dob<0)}${dobs.map(([j,b])=>opt(j,b.n,j==d.dob)).join('')}</select></label></div>
+    <label class="f"><span>Ширина добора по факту, мм</span><input id="d${i}_dobW" value="${esc(d.dobW)}" placeholder="напр. 150"></label>`}
+    <details class="qty"><summary>Количество на одну дверь: короб ${String(d.boxQ).replace('.',',')} · наличник ${String(d.nalQ).replace('.',',')} · добор ${String(d.dobQ).replace('.',',')}</summary>
+    <div class="g3" style="margin-top:8px"><label class="f"><span>Короб, шт.</span><input id="d${i}_boxQ" type="number" step="0.5" value="${d.boxQ}"></label>
+    <label class="f"><span>Наличник, шт.</span><input id="d${i}_nalQ" type="number" step="0.5" value="${d.nalQ}"></label>
+    <label class="f"><span>Добор, шт.</span><input id="d${i}_dobQ" type="number" step="0.5" value="${d.dobQ}"></label></div></details>
+    <div class="warn" id="dw${i}"></div>
+    <div class="dfoot"><button class="btn sm" data-dup>Дублировать</button><button class="btn sm ghost" data-del>Удалить дверь</button></div>
+    </div>`;
+    host.appendChild(el);
+    ['coll','model','coat','colorTxt','colorCat','glass','W','H','qty','box','nal','dob','boxQ','nalQ','dobQ','dobW','sys','nalSel','wall'].forEach(f=>{
+      const inp=el.querySelector(`#d${i}_${f}`); if(!inp)return;
+      inp.addEventListener(inp.tagName==='SELECT'?'change':'input',()=>{
+        const prev=d.sys; let v=inp.value; if(['model','coat','colorCat','glass','box','nal','dob','pic','nalSel'].includes(f))v=+v;
+        d[f]=v; if(f==='coll'){d.model=0;d.coat=0;d.glass=-1;d.pic=0}
+        if(f==='model'){d.coat=Math.min(d.coat,COLL[d.coll].models[d.model].coats.length-1);d.glass=-1}
+        if(f==='sys'){const sy=SYS[v];if(sy&&sy.nalDef)d.nalSel=idxOf(sy.nalDef);
+          if(v==='custom'&&prev&&prev!=='custom'){const rm=resolveMold({...d,sys:prev});d.box=rm.box;d.nal=rm.nal;d.dob=rm.dob;d.dobW=rm.dobNote}}
+        if(['coll','model','sys'].includes(f))renderDoors(); else update();
+      });
+    });
+    el.querySelectorAll('[data-pic]').forEach(b=>b.addEventListener('click',()=>{d.pic=+b.dataset.pic;el.querySelectorAll('[data-pic]').forEach(x=>x.setAttribute('aria-pressed',x===b));const t=el.querySelector('.th img');if(t)t.src=b.querySelector('img').src;update()}));
+    el.querySelector('[data-del]').addEventListener('click',()=>{S.doors.splice(i,1);renderDoors()});
+    el.querySelector('[data-dup]').addEventListener('click',()=>{const c2=JSON.parse(JSON.stringify(d));S.doors.forEach(x=>x._open=false);c2._open=true;S.doors.splice(i+1,0,c2);renderDoors()});
+    el.querySelector('[data-tog]').addEventListener('click',()=>{d._open=d._open===false;el.dataset.open=d._open?'true':'false';el.querySelector('[data-tog]').setAttribute('aria-expanded',d._open)});
+  });
+  update();
+}
+function renderExtras(){
+  const host=$('#extras');host.innerHTML='';
+  S.extras.forEach((e,i)=>{
+    const el=document.createElement('div');el.className='extra';
+    el.innerHTML=`<input class="nm" id="e${i}_n" placeholder="Наименование" value="${esc(e.n)}"><input id="e${i}_u" placeholder="ед." value="${esc(e.u)}"><input id="e${i}_q" type="number" placeholder="кол-во" value="${e.q}"><input id="e${i}_p" type="number" placeholder="цена" value="${e.p}"><button class="del x" aria-label="Удалить строку">✕</button><label class="mk"><input type="checkbox" id="e${i}_mk"${e.mk?' checked':''}>С наценкой</label>`;
+    host.appendChild(el);
+    ['n','u','q','p'].forEach(f=>el.querySelector(`#e${i}_${f}`).addEventListener('input',ev=>{e[f]=ev.target.value;update()}));
+    el.querySelector(`#e${i}_mk`).addEventListener('change',ev=>{e.mk=ev.target.checked;update()});
+    el.querySelector('.x').addEventListener('click',()=>{S.extras.splice(i,1);renderExtras()});
+  });
+  update();
+}
+function bindMeta(){
+  [['num','m_num'],['date','m_date'],['client','m_client'],['phone','m_phone'],['obj','m_obj'],['markup','m_markup'],['disc','m_disc']].forEach(([k,id])=>{
+    const el=$('#'+id); el.value=S.meta[k]??''; el.oninput=()=>{S.meta[k]=el.value;update()};
+  });
+}
+let saveT;
+function update(){
+  const mk=(+S.meta.markup||0)/100, ds=(+S.meta.disc||0)/100;
+  S.doors.forEach((d,i)=>{const R=doorCalc(d);const mt=$('#dmeta'+i);if(mt)mt.textContent=`${d.coll} · ${R.co.c} · ${d.W}×${d.H} · ${d.qty} шт.`;const e=$('#dp'+i);if(e)e.innerHTML=fmt(r2(R.unit*(1+mk)*(1-ds)*(+d.qty||0)))+'<small>'+fmt(r2(R.unit*(1+mk)*(1-ds)))+' за шт.</small>';
+    const w=$('#dw'+i);if(w){const ws=[...R.warn];if(R.stab)ws.push('Высота больше 2350 мм — добавлен обязательный стабилизатор');
+      const RM=resolveMold(d); RM.warn.forEach(x=>ws.push('Добор: '+x));
+      const dm=$('#dm'+i); if(dm){dm.innerHTML=[RM.box>=0?MOLD[RM.box].n:'', RM.nal>=0?MOLD[RM.nal].n:'без наличника', RM.dob>=0?MOLD[RM.dob].n+' (под '+RM.dobNote+' мм)':(+d.wall?'добор не нужен':'без добора')].filter(Boolean).map(x=>'<span>'+esc(x)+'</span>').join('')}
+      [RM.box,RM.nal,RM.dob].forEach(ix=>{if(ix>=0){const mc=moldCalc(MOLD[ix],R.co.k,+d.H,R.g);mc.warn.forEach(x=>ws.push(MOLD[ix].n+': '+x))}});
+      w.textContent=ws.join(' · ')}});
+  renderPaper();
+  clearTimeout(saveT);saveT=setTimeout(()=>{try{localStorage.setItem('terem_draft',JSON.stringify(S))}catch(e){}},400);
+}
+$('#addDoor').onclick=()=>{const last=S.doors[S.doors.length-1];const nd=last?JSON.parse(JSON.stringify(last)):newDoor();S.doors.forEach(x=>x._open=false);nd._open=true;S.doors.push(nd);renderDoors()};
+$('#addExtra').onclick=()=>{S.extras.push({n:'',u:'шт.',q:1,p:0,mk:false});renderExtras()};
+$('#newCalc').onclick=()=>{S={meta:{num:'',date:today(),client:'',phone:'',obj:'',markup:S.meta.markup??10,disc:0},doors:[newDoor()],extras:[]};bindMeta();renderDoors();renderExtras();toast('Начат новый расчёт')};
+function toast(t,bad){const e=$('#toast');e.textContent=t;e.classList.toggle('bad',!!bad);clearTimeout(e._t);e._t=setTimeout(()=>e.textContent='',4000)}
+
+// ---------- PDF ----------
+let downloads=null;
+// инструкция
+const vm=$('#vmodal'),vp=$('#vplayer');
+$('#helpBtn').onclick=()=>{vm.hidden=false;$('#verr').hidden=true;try{vp.currentTime=0;const pr=vp.play();if(pr&&pr.catch)pr.catch(()=>{})}catch(e){}};
+function closeV(){vp.pause();vm.hidden=true}
+$('#vclose').onclick=closeV; vm.addEventListener('click',e=>{if(e.target===vm)closeV()});
+addEventListener('keydown',e=>{if(e.key==='Escape'&&!vm.hidden)closeV()});
+vp.querySelectorAll('source')[1].addEventListener('error',()=>{$('#verr').hidden=false});
+$('#mPdf').onclick=()=>$('#savePdf').click();
+$('#savePdf').onclick=async()=>{
+  if(!window.html2canvas||!window.jspdf){toast('Не загрузились библиотеки PDF — обновите страницу',true);return}
+  const btn=$('#savePdf');btn.disabled=true;btn.dataset.h=btn.innerHTML;btn.textContent='Готовлю PDF…';
+  try{
+    const clone=$('#paper').cloneNode(true);clone.id='paper';clone.style.transform='none';
+    const holder=document.createElement('div');holder.style.cssText='position:fixed;left:-10000px;top:0;width:794px';holder.appendChild(clone);document.body.appendChild(holder);
+    try{await document.fonts.ready}catch(e){}
+    const cv=await html2canvas(clone,{scale:2,backgroundColor:'#ffffff',useCORS:true});
+    holder.remove();
+    const {jsPDF}=window.jspdf;const pdf=new jsPDF({unit:'pt',format:'a4'});
+    const pw=pdf.internal.pageSize.getWidth(),ph=pdf.internal.pageSize.getHeight();
+    const pxPerPt=cv.width/pw; const pageH=Math.floor(ph*pxPerPt);
+    for(let y=0,pg=0;y<cv.height;y+=pageH,pg++){
+      const h=Math.min(pageH,cv.height-y);const c2=document.createElement('canvas');c2.width=cv.width;c2.height=h;
+      c2.getContext('2d').drawImage(cv,0,y,cv.width,h,0,0,cv.width,h);
+      if(pg)pdf.addPage(); pdf.addImage(c2.toDataURL('image/jpeg',0.92),'JPEG',0,0,pw,h/pxPerPt);
+    }
+    const blob=pdf.output('blob');
+    const name=('Эскиз и расчёт '+(S.meta.client||'')+' '+(S.meta.num||'')).trim().replace(/\s+/g,' ')+'.pdf';
+    if(!downloads)downloads=await (window.claude?.use?window.claude.use('downloads'):null);
+    if(!downloads){toast('Сохранение файлов недоступно в этом окне',true);return}
+    await downloads.save({filename:name,data:blob}); toast('PDF сохранён');
+  }catch(e){ if(e&&e.code==='declined')toast('Сохранение отменено',true); else toast('Не удалось сохранить PDF'+(e&&e.code?' ('+e.code+')':''),true)}
+  finally{btn.disabled=false;btn.innerHTML=btn.dataset.h}
+};
+
+// ---------- история ----------
+let db=null,uid=null,unsub=null,HIST=[];
+async function initDb(){
+  try{
+    if(!window.claude?.use)return;
+    const [d,u]=await Promise.all([claude.use('db'),claude.use('user')]);
+    if(d&&u){db=d;uid=await u.id();
+      unsub=db.collection('data/users/'+uid).orderBy('ts','desc').onSnapshot(snap=>{HIST=snap.docs.map(x=>({id:x.id,...x.data()}));renderHist()},err=>{});
+    }
+  }catch(e){db=null}
+}
+function localHist(){try{return JSON.parse(localStorage.getItem('terem_hist')||'[]')}catch(e){return[]}}
+function renderHist(){
+  const list=db?HIST:localHist();const host=$('#histList');
+  if(!list.length){host.innerHTML='<div class="empty">Сохранённых расчётов пока нет. Нажмите «Сохранить в историю» на вкладке «Расчёт».</div>';return}
+  host.innerHTML='';
+  list.forEach(h=>{const el=document.createElement('div');el.className='card hrow';
+    const dt=new Date(h.ts).toLocaleString('ru-RU',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'});
+    el.innerHTML=`<div style="min-width:0"><div class="t">${esc(h.title)}</div><div class="m">${dt}</div></div><div class="s">${fmt(h.total||0)}</div><div style="display:flex;gap:6px"><button class="btn sm" data-a="open">Открыть</button><button class="btn sm ghost" data-a="del">Удалить</button></div>`;
+    el.querySelector('[data-a=open]').onclick=()=>{try{S=JSON.parse(h.state)}catch(e){return}bindMeta();renderDoors();renderExtras();showTab('calc');toast('Расчёт открыт')};
+    const del=el.querySelector('[data-a=del]');
+    del.onclick=async()=>{ if(del.dataset.c!=='1'){del.dataset.c='1';del.textContent='Точно удалить?';setTimeout(()=>{del.dataset.c='';del.textContent='Удалить'},3000);return}
+      if(db){try{await db.collection('data/users/'+uid).doc(h.id).delete()}catch(e){toast('Не удалось удалить',true)}}
+      else{try{localStorage.setItem('terem_hist',JSON.stringify(localHist().filter(x=>x.id!==h.id)))}catch(e){}renderHist()}};
+    host.appendChild(el)});
+}
+$('#saveHist').onclick=async()=>{
+  const C=calcAll();const names=[...new Set(S.doors.map(d=>doorCalc(d).m.n.replace(/\s*\([^)]*\)\s*$/,'')))].join(', ');
+  const title=[S.meta.client||'Без имени',S.meta.num?('№ '+S.meta.num):'',names].filter(Boolean).join(' · ');
+  const rec={title,total:C.tot,ts:Date.now(),state:JSON.stringify(S)};
+  if(db){try{await db.collection('data/users/'+uid).add(rec);toast('Сохранено в историю')}catch(e){toast('Не удалось сохранить'+(e&&e.code?' ('+e.code+')':''),true)}}
+  else{try{const l=localHist();l.unshift({id:String(rec.ts),...rec});localStorage.setItem('terem_hist',JSON.stringify(l.slice(0,200)));toast('Сохранено в историю (в этом браузере)')}catch(e){toast('Не удалось сохранить',true)}}
+};
+function showTab(t){$('#viewCalc').hidden=t!=='calc';$('#viewHist').hidden=t==='calc';$('#tabCalc').setAttribute('aria-selected',t==='calc');$('#tabHist').setAttribute('aria-selected',t!=='calc');if(t!=='calc')renderHist();else fitPaper()}
+$('#tabCalc').onclick=()=>showTab('calc');$('#tabHist').onclick=()=>showTab('hist');
+
+bindMeta();renderDoors();renderExtras();
+setTimeout(initDb,0);
+window.__calc=calcAll;
+})();
+</script>
